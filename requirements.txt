@@ -1,0 +1,55 @@
+# ============================================================
+# requirements.txt — Dependencies cho SDN DDoS Detection System
+# ============================================================
+
+# Deep Learning
+torch>=1.13.0
+numpy>=1.21.0
+
+# Machine Learning (scaler)
+scikit-learn>=1.0.0
+
+# SDN Controller (cài trên Linux)
+# pip install ryu
+# Hoặc: apt-get install python3-ryu
+
+# Data processing
+pandas>=1.3.0
+
+# Visualization (optional, cho benchmark plots)
+matplotlib>=3.4.0
+seaborn>=0.11.0
+
+# Utilities
+tqdm>=4.62.0
+
+# ============================================================
+# HƯỚNG DẪN CÀI ĐẶT
+# ============================================================
+# 1. Tạo virtual environment:
+#    python3 -m venv venv
+#    source venv/bin/activate        (Linux/Mac)
+#    venv\Scripts\activate           (Windows)
+#
+# 2. Cài dependencies:
+#    pip install -r requirements.txt
+#
+# 3. Cài Ryu (chỉ trên Linux):
+#    pip install ryu
+#
+# 4. Cài Mininet (Ubuntu):
+#    sudo apt-get install mininet
+#    sudo mn --test pingall          # Test Mininet
+#
+# 5. Cài hping3 (để sinh DDoS traffic):
+#    sudo apt-get install hping3
+#
+# 6. Cài iperf3 (để sinh normal traffic):
+#    sudo apt-get install iperf3
+#
+# ============================================================
+# KIỂM TRA NHANH
+# ============================================================
+# python -c "import torch; print('PyTorch OK:', torch.__version__)"
+# python -c "import sklearn; print('sklearn OK:', sklearn.__version__)"
+# python -c "import pickle; s=pickle.load(open('scaler.pkl','rb')); print('Scaler type:', type(s))"

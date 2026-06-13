@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+venv_ryu/
+env/
+ENV/
+
+# Data and models (if too large, but usually we keep scaler.pkl)
+# We will explicitly keep scaler.pkl and .h5 files if they are small enough,
+# but ignore large datasets
+dataset/*.csv
+*.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
