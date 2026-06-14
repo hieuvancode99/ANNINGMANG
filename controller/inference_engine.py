@@ -80,7 +80,7 @@ class InferenceEngine:
             "count": 0,
             "total_ms": 0.0,
             "max_ms": 0.0,
-            "min_ms": float("inf"),
+            "min_ms": 0.0,
         }
 
         # Load model và scaler
@@ -180,7 +180,7 @@ class InferenceEngine:
         # Reset latency stats
         self.latency_stats = {
             "count": 0, "total_ms": 0.0,
-            "max_ms": 0.0, "min_ms": float("inf"),
+            "max_ms": 0.0, "min_ms": 0.0,
         }
         logger.info(f"[InferenceEngine] Model swapped to '{new_model_name}' ✓")
 
