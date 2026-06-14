@@ -28,9 +28,6 @@ from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, set_ev_cl
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ethernet, ipv4, tcp, udp, icmp
 from ryu.lib import hub
-from ryu.app.wsgi import ControllerBase, WSGIApplication, route
-from webob import Response
-import json
 
 # Thêm thư mục gốc vào path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -58,69 +55,7 @@ logging.basicConfig(
 logger = logging.getLogger("RyuController")
 
 
-# ============================================================
-# REST API (WSGI)
-# ============================================================
-def _cors_response(status=200, json_body=None):
-    """Helper tạo Response với CORS headers."""
-    resp = Response(status=status, json_body=json_body or {})
-    resp.headers['Access-Control-Allow-Origin'] = '*'
-    resp.headers['Access-Control-Allow-Methods'] = 'GET, PUT, POST, OPTIONS'
-    resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-    return resp
-
-
-class ModelSwapController(ControllerBase):
-    def __init__(self, req, link, data, **config):
-        super(ModelSwapController, self).__init__(req, link, data, **config)
-        self.sdn_app = data['sdn_app']
-
-    # ---------- Model API ----------
-    @route('model_api', '/api/model', methods=['GET', 'PUT', 'OPTIONS'])
-    def handle_model(self, req, **kwargs):
-        if req.method == 'OPTIONS':
-            return _cors_response(200, {'status': 'ok'})
-        if req.method == 'PUT':
-            try:
-                body = json.loads(req.body)
-                new_model = body.get('model', '').lower()
-                if new_model in ['lstm', 'transformer', 'autoencoder']:
-                    self.sdn_app.swap_model(new_model)
-                    return _cors_response(200, {'status': 'ok', 'model': new_model})
-                else:
-                    return _cors_response(400, {'error': 'Invalid model'})
-            except Exception as e:
-                return _cors_response(500, {'error': str(e)})
-        else: # GET
-            try:
-                return _cors_response(200, {
-                    'model': self.sdn_app.engine._model_name,
-                    'available': ['lstm', 'transformer', 'autoencoder']
-                })
-            except Exception as e:
-                return _cors_response(500, {'error': str(e)})
-
-    # ---------- Stats API ----------
-    @route('stats_api', '/api/stats', methods=['GET', 'OPTIONS'])
-    def handle_stats(self, req, **kwargs):
-        if req.method == 'OPTIONS':
-            return _cors_response(200, {'status': 'ok'})
-        try:
-            stats = self.sdn_app.get_stats()
-            return _cors_response(200, stats)
-        except Exception as e:
-            return _cors_response(500, {'error': str(e)})
-
-    # ---------- Alerts API ----------
-    @route('alerts_api', '/api/alerts', methods=['GET', 'OPTIONS'])
-    def handle_alerts(self, req, **kwargs):
-        if req.method == 'OPTIONS':
-            return _cors_response(200, {'status': 'ok'})
-        try:
-            alerts = list(self.sdn_app.alert_history)
-            return _cors_response(200, {'alerts': alerts, 'total': len(alerts)})
-        except Exception as e:
-            return _cors_response(500, {'error': str(e)})
+# (Đã xóa REST API và Web Dashboard theo yêu cầu)
 
 
 # ============================================================
@@ -143,23 +78,17 @@ class SDNDDoSController(app_manager.RyuApp):
     """
 
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
-    _CONTEXTS = {'wsgi': WSGIApplication}
 
     def __init__(self, *args, **kwargs):
         super(SDNDDoSController, self).__init__(*args, **kwargs)
 
-        # Đăng ký REST API
-        wsgi = kwargs['wsgi']
-        wsgi.register(ModelSwapController, {'sdn_app': self})
+        logger.info(f"SDNDDoSController started. Model: {ACTIVE_MODEL}")
 
         # L2 MAC learning table: {dpid: {mac: port}}
         self.mac_to_port = {}
 
         # Theo dõi các datapath đã kết nối
         self.datapaths = {}
-
-        # Alert history (cho REST API dashboard)
-        self.alert_history = deque(maxlen=200)
 
         # Lưu match info của flow để install drop rule
         # {flow_id: (datapath, match)}
@@ -319,17 +248,6 @@ class SDNDDoSController(app_manager.RyuApp):
         Callback được gọi bởi InferenceEngine khi có kết quả phân tích.
         Chạy trong AlertHandler thread.
         """
-        import time as _time
-        alert_entry = {
-            'timestamp': _time.time(),
-            'flow_id': flow_id,
-            'model': result.get('model_name', ''),
-            'confidence': round(result.get('confidence', 0), 4),
-            'latency_ms': round(result.get('infer_latency_ms', 0), 2),
-            'label': result.get('label', 'DDoS'),
-        }
-        self.alert_history.append(alert_entry)
-
         # CHỈ CẢNH BÁO VÀ DROP NẾU LÀ DDoS
         if result.get('label') == 'DDoS':
             logger.warning(
@@ -409,19 +327,4 @@ class SDNDDoSController(app_manager.RyuApp):
         mod = parser.OFPFlowMod(**kwargs)
         datapath.send_msg(mod)
 
-    # ===========================================================
-    # STATS (cho benchmark)
-    # ===========================================================
-    def get_stats(self) -> dict:
-        """Trả về thống kê hệ thống."""
-        import time as _time
-        return {
-            "active_model":    self.engine._model_name,
-            "connected_dpids": list(self.datapaths.keys()),
-            "latency":         self.engine.get_latency_stats(),
-            "extractor":       self.extractor.get_stats(),
-            "queue_data":      self.engine.data_queue.qsize(),
-            "queue_result":    self.engine.result_queue.qsize(),
-            "total_alerts":    len(self.alert_history),
-            "server_time":     _time.time(),
-        }
+
