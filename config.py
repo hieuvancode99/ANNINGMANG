@@ -77,7 +77,7 @@ SEQ_LENGTH = 10   # số timestep lịch sử cần thu thập trước khi infe
 # ============================================================
 # Chu kỳ gửi OFPFlowStatsRequest (giây)
 # Thay đổi để phân tích overhead: 1s, 5s, 10s
-POLLING_CYCLE = 5
+POLLING_CYCLE = 1
 
 # ============================================================
 # QUEUE CONFIGURATION

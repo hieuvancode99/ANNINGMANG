@@ -19,7 +19,7 @@
 ATTACK_TYPE=${1:-"syn"}
 TARGET_IP=${2:-"10.0.0.1"}
 TARGET_PORT=${3:-"80"}
-DURATION=30   # giây
+DURATION=60   # giây
 
 echo "========================================"
 echo " DDoS Traffic Generator"
