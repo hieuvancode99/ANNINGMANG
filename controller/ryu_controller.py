@@ -316,7 +316,7 @@ class SDNDDoSController(app_manager.RyuApp):
     # ===========================================================
     def _on_ddos_alert(self, flow_id: str, result: dict):
         """
-        Callback được gọi bởi InferenceEngine khi phát hiện DDoS.
+        Callback được gọi bởi InferenceEngine khi có kết quả phân tích.
         Chạy trong AlertHandler thread.
         """
         import time as _time
@@ -330,18 +330,20 @@ class SDNDDoSController(app_manager.RyuApp):
         }
         self.alert_history.append(alert_entry)
 
-        logger.warning(
-            f"\n{'='*60}\n"
-            f"  ⚠️  DDoS DETECTED!\n"
-            f"  Flow ID:    {flow_id}\n"
-            f"  Model:      {result['model_name']}\n"
-            f"  Confidence: {result['confidence']:.4f}\n"
-            f"  Latency:    {result['infer_latency_ms']:.2f} ms\n"
-            f"{'='*60}"
-        )
+        # CHỈ CẢNH BÁO VÀ DROP NẾU LÀ DDoS
+        if result.get('label') == 'DDoS':
+            logger.warning(
+                f"\n{'='*60}\n"
+                f"  ⚠️  DDoS DETECTED!\n"
+                f"  Flow ID:    {flow_id}\n"
+                f"  Model:      {result['model_name']}\n"
+                f"  Confidence: {result['confidence']:.4f}\n"
+                f"  Latency:    {result['infer_latency_ms']:.2f} ms\n"
+                f"{'='*60}"
+            )
 
-        if AUTO_DROP:
-            self._install_drop_rule(flow_id)
+            if AUTO_DROP:
+                self._install_drop_rule(flow_id)
 
     def _install_drop_rule(self, flow_id: str):
         """Cài đặt flow rule DROP để block traffic DDoS."""

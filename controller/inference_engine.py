@@ -349,16 +349,17 @@ class InferenceEngine:
                     f"infer={result['infer_latency_ms']:.2f}ms | "
                     f"total={result.get('total_latency_ms', 0):.2f}ms"
                 )
-                # Gọi callback nếu có (để Controller install drop rule)
-                if self.on_alert:
-                    try:
-                        self.on_alert(result["flow_id"], result)
-                    except Exception as e:
-                        logger.error(f"[AlertHandler] on_alert callback error: {e}")
             else:
                 logger.debug(
                     f"[OK] Normal flow: {result['flow_id']} | "
                     f"confidence={result['confidence']:.4f}"
                 )
+
+            # Gọi callback cho TẤT CẢ kết quả (để Dashboard cập nhật cả Normal)
+            if self.on_alert:
+                try:
+                    self.on_alert(result["flow_id"], result)
+                except Exception as e:
+                    logger.error(f"[AlertHandler] on_alert callback error: {e}")
 
         logger.info("[AlertHandler] Thread stopped.")
