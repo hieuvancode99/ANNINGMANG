@@ -75,46 +75,36 @@ class ModelSwapController(ControllerBase):
         super(ModelSwapController, self).__init__(req, link, data, **config)
         self.sdn_app = data['sdn_app']
 
-    # ---------- CORS Preflight ----------
-    @route('cors_model', '/api/model', methods=['OPTIONS'])
-    def cors_model(self, req, **kwargs):
-        return _cors_response(200, {'status': 'ok'})
-
-    @route('cors_stats', '/api/stats', methods=['OPTIONS'])
-    def cors_stats(self, req, **kwargs):
-        return _cors_response(200, {'status': 'ok'})
-
-    @route('cors_alerts', '/api/alerts', methods=['OPTIONS'])
-    def cors_alerts(self, req, **kwargs):
-        return _cors_response(200, {'status': 'ok'})
-
     # ---------- Model API ----------
-    @route('model_put', '/api/model', methods=['PUT'])
-    def swap_model(self, req, **kwargs):
-        try:
-            body = json.loads(req.body)
-            new_model = body.get('model', '').lower()
-            if new_model in ['lstm', 'transformer', 'autoencoder']:
-                self.sdn_app.swap_model(new_model)
-                return _cors_response(200, {'status': 'ok', 'model': new_model})
-            else:
-                return _cors_response(400, {'error': 'Invalid model'})
-        except Exception as e:
-            return _cors_response(500, {'error': str(e)})
-
-    @route('model_get', '/api/model', methods=['GET'])
-    def get_model(self, req, **kwargs):
-        try:
-            return _cors_response(200, {
-                'model': self.sdn_app.engine._model_name,
-                'available': ['lstm', 'transformer', 'autoencoder']
-            })
-        except Exception as e:
-            return _cors_response(500, {'error': str(e)})
+    @route('model_api', '/api/model', methods=['GET', 'PUT', 'OPTIONS'])
+    def handle_model(self, req, **kwargs):
+        if req.method == 'OPTIONS':
+            return _cors_response(200, {'status': 'ok'})
+        if req.method == 'PUT':
+            try:
+                body = json.loads(req.body)
+                new_model = body.get('model', '').lower()
+                if new_model in ['lstm', 'transformer', 'autoencoder']:
+                    self.sdn_app.swap_model(new_model)
+                    return _cors_response(200, {'status': 'ok', 'model': new_model})
+                else:
+                    return _cors_response(400, {'error': 'Invalid model'})
+            except Exception as e:
+                return _cors_response(500, {'error': str(e)})
+        else: # GET
+            try:
+                return _cors_response(200, {
+                    'model': self.sdn_app.engine._model_name,
+                    'available': ['lstm', 'transformer', 'autoencoder']
+                })
+            except Exception as e:
+                return _cors_response(500, {'error': str(e)})
 
     # ---------- Stats API ----------
-    @route('stats', '/api/stats', methods=['GET'])
-    def get_stats(self, req, **kwargs):
+    @route('stats_api', '/api/stats', methods=['GET', 'OPTIONS'])
+    def handle_stats(self, req, **kwargs):
+        if req.method == 'OPTIONS':
+            return _cors_response(200, {'status': 'ok'})
         try:
             stats = self.sdn_app.get_stats()
             return _cors_response(200, stats)
@@ -122,8 +112,10 @@ class ModelSwapController(ControllerBase):
             return _cors_response(500, {'error': str(e)})
 
     # ---------- Alerts API ----------
-    @route('alerts', '/api/alerts', methods=['GET'])
-    def get_alerts(self, req, **kwargs):
+    @route('alerts_api', '/api/alerts', methods=['GET', 'OPTIONS'])
+    def handle_alerts(self, req, **kwargs):
+        if req.method == 'OPTIONS':
+            return _cors_response(200, {'status': 'ok'})
         try:
             alerts = list(self.sdn_app.alert_history)
             return _cors_response(200, {'alerts': alerts, 'total': len(alerts)})
