@@ -720,14 +720,14 @@ class DoughnutChart {
     });
 
     // Center text
-    const pct = total > 0 ? ((ddos / total) * 100).toFixed(0) : '0';
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = 'bold 18px JetBrains Mono';
+    ctx.fillStyle = '#ef4444'; // Tô màu đỏ cho ngầu
+    ctx.font = 'bold 26px JetBrains Mono'; // Tăng size chữ vì không còn ký hiệu %
     ctx.textAlign = 'center';
-    ctx.fillText(`${pct}%`, cx, cy - 2);
+    ctx.fillText(`${ddos}`, cx, cy - 2);
+    
     ctx.fillStyle = '#64748b';
-    ctx.font = '9px Inter';
-    ctx.fillText('DDoS', cx, cy + 14);
+    ctx.font = '10px Inter';
+    ctx.fillText('Đã chặn', cx, cy + 16);
   }
 }
 
