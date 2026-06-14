@@ -263,6 +263,26 @@ class InferenceEngine:
             model_name = self._model_name
             model      = self._model
 
+        # ============================================================
+        # BYPASS BỘ LỌC CHO LƯU LƯỢNG NHỎ (TRÁNH DƯƠNG TÍNH GIẢ)
+        # ============================================================
+        # Thứ tự features: [duration, pkt_count, byte_count, byte_rate, pkt_rate, Protocol]
+        # packet_rate nằm ở vị trí số 4.
+        if len(features.shape) == 2:
+            latest_packet_rate = features[-1][4]
+        else:
+            latest_packet_rate = features[4]
+            
+        # Nếu tốc độ nhỏ hơn 10 gói tin / giây (như lệnh ping), cho qua luôn là Normal
+        if latest_packet_rate < 10.0:
+            return {
+                "flow_id":         flow_id,
+                "label":           "Normal",
+                "confidence":      0.0,
+                "infer_latency_ms": 0.0,
+                "model_name":      model_name,
+            }
+
         t0 = time.time()
 
         if model_name in ("lstm", "transformer"):
