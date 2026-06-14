@@ -859,8 +859,9 @@ function updateAlertTimeline() {
   const countBadge = document.getElementById('alert-count');
   if (!list) return;
 
-  // Only update if new alerts
-  const displayAlerts = state.alerts.slice(-50).reverse();
+  // Lọc chỉ lấy các cảnh báo thực sự (DDoS) để hiển thị trên danh sách
+  const ddosAlerts = state.alerts.filter(a => a.label === 'DDoS');
+  const displayAlerts = ddosAlerts.slice(-50).reverse();
 
   if (displayAlerts.length === 0) {
     list.innerHTML = '<div class="no-alerts">🛡️ Chưa có cảnh báo nào</div>';
