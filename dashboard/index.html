@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SDN DDoS Detection — Dashboard</title>
+  <meta name="description" content="Real-time dashboard for SDN DDoS Detection System with AI-powered deep learning models (LSTM, Transformer, Autoencoder)" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+</head>
+<body>
+
+  <!-- ════════════════ HEADER ════════════════ -->
+  <header class="header">
+    <div class="header-left">
+      <div class="header-logo">🛡️</div>
+      <div>
+        <div class="header-title">SDN DDoS Detection System</div>
+        <div class="header-subtitle">AI-Powered Network Security Dashboard</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-badge offline" id="status-badge">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">CONNECTING</span>
+      </div>
+      <div class="header-clock" id="header-clock">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- ════════════════ MAIN CONTENT ════════════════ -->
+  <div class="main-content">
+
+    <!-- ── Connection Config Bar ── -->
+    <div class="config-bar">
+      <span class="config-label">🔗 Controller API:</span>
+      <input type="text" class="config-input" id="api-url" value="http://localhost:8080" placeholder="http://localhost:8080" />
+      <button class="btn-connect" id="btn-connect">Kết nối</button>
+      <span class="config-status" id="config-status"></span>
+    </div>
+
+    <!-- ── KPI Stats Row ── -->
+    <div class="stats-row">
+      <!-- Latency -->
+      <div class="stat-card">
+        <div class="stat-label">🕐 Inference Latency</div>
+        <div>
+          <span class="stat-value" id="stat-latency">0.00</span>
+          <span class="stat-unit">ms</span>
+        </div>
+        <div class="stat-change" id="stat-tracked">Tracked: 0</div>
+        <div class="stat-spark"><canvas id="spark-latency"></canvas></div>
+      </div>
+
+      <!-- Detection Rate -->
+      <div class="stat-card">
+        <div class="stat-label">📊 Detection Rate</div>
+        <div>
+          <span class="stat-value" id="stat-detection">0.0</span>
+          <span class="stat-unit">%</span>
+        </div>
+        <div class="stat-change" id="stat-queue">Queue: 0/0</div>
+      </div>
+
+      <!-- Flows Analyzed -->
+      <div class="stat-card">
+        <div class="stat-label">📦 Flows Analyzed</div>
+        <div>
+          <span class="stat-value" id="stat-flows">0</span>
+        </div>
+        <div class="stat-change">Tổng inference</div>
+      </div>
+
+      <!-- Total Alerts -->
+      <div class="stat-card">
+        <div class="stat-label">⚡ Total Alerts</div>
+        <div>
+          <span class="stat-value" id="stat-alerts">0</span>
+        </div>
+        <div class="stat-change">DDoS detected</div>
+      </div>
+    </div>
+
+    <!-- ── Model Switcher + Attack Controls ── -->
+    <div class="model-section">
+
+      <!-- Model Switcher -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">🧠</span> Chuyển đổi Model AI
+          </div>
+        </div>
+        <div class="model-switcher">
+          <button class="model-btn active" data-model="lstm">
+            <span class="model-btn-name">LSTM</span>
+            <span class="model-btn-info">Input: (1, 10, 6) · Threshold: > 0.5</span>
+          </button>
+          <button class="model-btn" data-model="transformer">
+            <span class="model-btn-name">Transformer</span>
+            <span class="model-btn-info">Input: (1, 10, 6) · Threshold: > 0.5</span>
+          </button>
+          <button class="model-btn" data-model="autoencoder">
+            <span class="model-btn-name">Autoencoder</span>
+            <span class="model-btn-info">Input: (1, 6) · Threshold: MSE > 0.0026</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Attack Simulation -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">💣</span> Mô phỏng Tấn công
+          </div>
+        </div>
+        <div class="attack-controls">
+          <div class="attack-row">
+            <select class="attack-select" id="attack-type">
+              <option value="syn">SYN Flood</option>
+              <option value="udp">UDP Flood</option>
+              <option value="icmp">ICMP Flood</option>
+            </select>
+          </div>
+          <div class="attack-row">
+            <select class="attack-select" id="attack-source">
+              <option value="h2">H2 (Attacker)</option>
+              <option value="h3">H3 (Attacker)</option>
+              <option value="h5">H5 (Attacker)</option>
+              <option value="h7">H7 (Attacker)</option>
+              <option value="h8">H8 (Attacker)</option>
+              <option value="h9">H9 (Attacker)</option>
+            </select>
+            <span style="color: var(--text-muted); font-size: 0.85rem;">→</span>
+            <select class="attack-select" id="attack-target">
+              <option value="h1">H1 (Target)</option>
+              <option value="h4">H4 (Target)</option>
+              <option value="h6">H6 (Target)</option>
+            </select>
+          </div>
+          <div class="attack-row">
+            <button class="btn-attack launch" id="btn-launch">🚀 Bắt đầu tấn công</button>
+            <button class="btn-attack stop" id="btn-stop" disabled>🛑 Dừng</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Topology Panel (Left) ── -->
+    <div class="card topology-panel">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="card-title-icon">🌐</span> Network Topology
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">
+          Tree: depth=2, fanout=3
+        </div>
+      </div>
+      <div class="topology-container" id="topology-container"></div>
+    </div>
+
+    <!-- ── Right Sidebar ── -->
+    <div class="sidebar">
+
+      <!-- Latency Chart -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">📈</span> Latency Timeline
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="latency-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Classification Doughnut -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">🎯</span> Traffic Classification
+          </div>
+        </div>
+        <div class="doughnut-wrapper">
+          <div class="doughnut-canvas-wrap">
+            <canvas id="doughnut-canvas"></canvas>
+          </div>
+          <div class="doughnut-legend">
+            <div class="legend-item">
+              <span class="legend-dot" style="background: #10b981;"></span>
+              <span class="legend-label">Normal</span>
+              <span class="legend-value" id="legend-normal">0</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background: #ef4444;"></span>
+              <span class="legend-label">DDoS</span>
+              <span class="legend-value" id="legend-ddos">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alert Timeline -->
+      <div class="card alert-timeline">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">🚨</span> Cảnh báo
+          </div>
+          <span class="alert-count-badge" id="alert-count">0</span>
+        </div>
+        <div class="alert-list" id="alert-list">
+          <div class="no-alerts">🛡️ Chưa có cảnh báo nào</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ════════════════ SCRIPTS ════════════════ -->
+  <script src="app.js"></script>
+
+</body>
+</html>

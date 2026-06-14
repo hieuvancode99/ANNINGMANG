@@ -16,6 +16,7 @@ Sau đó chạy Mininet:
 """
 
 import os
+from collections import deque
 import sys
 import time
 import logging
@@ -60,24 +61,74 @@ logger = logging.getLogger("RyuController")
 # ============================================================
 # REST API (WSGI)
 # ============================================================
+def _cors_response(status=200, json_body=None):
+    """Helper tạo Response với CORS headers."""
+    resp = Response(status=status, json_body=json_body or {})
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.headers['Access-Control-Allow-Methods'] = 'GET, PUT, POST, OPTIONS'
+    resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return resp
+
+
 class ModelSwapController(ControllerBase):
     def __init__(self, req, link, data, **config):
         super(ModelSwapController, self).__init__(req, link, data, **config)
         self.sdn_app = data['sdn_app']
 
-    @route('model', '/api/model', methods=['PUT'])
+    # ---------- CORS Preflight ----------
+    @route('cors_model', '/api/model', methods=['OPTIONS'])
+    def cors_model(self, req, **kwargs):
+        return _cors_response(200, {'status': 'ok'})
+
+    @route('cors_stats', '/api/stats', methods=['OPTIONS'])
+    def cors_stats(self, req, **kwargs):
+        return _cors_response(200, {'status': 'ok'})
+
+    @route('cors_alerts', '/api/alerts', methods=['OPTIONS'])
+    def cors_alerts(self, req, **kwargs):
+        return _cors_response(200, {'status': 'ok'})
+
+    # ---------- Model API ----------
+    @route('model_put', '/api/model', methods=['PUT'])
     def swap_model(self, req, **kwargs):
         try:
             body = json.loads(req.body)
             new_model = body.get('model', '').lower()
             if new_model in ['lstm', 'transformer', 'autoencoder']:
-                # Gửi lệnh đổi model tới controller
                 self.sdn_app.swap_model(new_model)
-                return Response(status=200, json_body={'status': 'ok', 'model': new_model})
+                return _cors_response(200, {'status': 'ok', 'model': new_model})
             else:
-                return Response(status=400, json_body={'error': 'Invalid model: must be lstm, transformer, or autoencoder'})
+                return _cors_response(400, {'error': 'Invalid model'})
         except Exception as e:
-            return Response(status=500, json_body={'error': str(e)})
+            return _cors_response(500, {'error': str(e)})
+
+    @route('model_get', '/api/model', methods=['GET'])
+    def get_model(self, req, **kwargs):
+        try:
+            return _cors_response(200, {
+                'model': self.sdn_app.engine._model_name,
+                'available': ['lstm', 'transformer', 'autoencoder']
+            })
+        except Exception as e:
+            return _cors_response(500, {'error': str(e)})
+
+    # ---------- Stats API ----------
+    @route('stats', '/api/stats', methods=['GET'])
+    def get_stats(self, req, **kwargs):
+        try:
+            stats = self.sdn_app.get_stats()
+            return _cors_response(200, stats)
+        except Exception as e:
+            return _cors_response(500, {'error': str(e)})
+
+    # ---------- Alerts API ----------
+    @route('alerts', '/api/alerts', methods=['GET'])
+    def get_alerts(self, req, **kwargs):
+        try:
+            alerts = list(self.sdn_app.alert_history)
+            return _cors_response(200, {'alerts': alerts, 'total': len(alerts)})
+        except Exception as e:
+            return _cors_response(500, {'error': str(e)})
 
 
 # ============================================================
@@ -114,6 +165,9 @@ class SDNDDoSController(app_manager.RyuApp):
 
         # Theo dõi các datapath đã kết nối
         self.datapaths = {}
+
+        # Alert history (cho REST API dashboard)
+        self.alert_history = deque(maxlen=200)
 
         # Lưu match info của flow để install drop rule
         # {flow_id: (datapath, match)}
@@ -273,6 +327,17 @@ class SDNDDoSController(app_manager.RyuApp):
         Callback được gọi bởi InferenceEngine khi phát hiện DDoS.
         Chạy trong AlertHandler thread.
         """
+        import time as _time
+        alert_entry = {
+            'timestamp': _time.time(),
+            'flow_id': flow_id,
+            'model': result.get('model_name', ''),
+            'confidence': round(result.get('confidence', 0), 4),
+            'latency_ms': round(result.get('infer_latency_ms', 0), 2),
+            'label': result.get('label', 'DDoS'),
+        }
+        self.alert_history.append(alert_entry)
+
         logger.warning(
             f"\n{'='*60}\n"
             f"  ⚠️  DDoS DETECTED!\n"
@@ -355,6 +420,7 @@ class SDNDDoSController(app_manager.RyuApp):
     # ===========================================================
     def get_stats(self) -> dict:
         """Trả về thống kê hệ thống."""
+        import time as _time
         return {
             "active_model":    self.engine._model_name,
             "connected_dpids": list(self.datapaths.keys()),
@@ -362,4 +428,6 @@ class SDNDDoSController(app_manager.RyuApp):
             "extractor":       self.extractor.get_stats(),
             "queue_data":      self.engine.data_queue.qsize(),
             "queue_result":    self.engine.result_queue.qsize(),
+            "total_alerts":    len(self.alert_history),
+            "server_time":     _time.time(),
         }
