@@ -698,8 +698,16 @@ class DoughnutChart {
     let startAngle = -Math.PI / 2;
     segments.forEach(seg => {
       if (seg.value === 0) return;
-      const angle = (seg.value / total) * Math.PI * 2;
-      const gap = 0.03;
+      
+      // Tính góc, nếu có dữ liệu thì đảm bảo góc tối thiểu để luôn hiển thị được trên biểu đồ (ít nhất 5 độ ~ 0.08 rad)
+      let angle = (seg.value / total) * Math.PI * 2;
+      if (angle < 0.1) angle = 0.1; 
+      
+      // Giảm gap nếu góc quá bé để không bị lỗi vẽ ngược
+      let gap = 0.03;
+      if (angle <= gap * 2) {
+        gap = angle / 3;
+      }
 
       ctx.beginPath();
       ctx.arc(cx, cy, r, startAngle + gap, startAngle + angle - gap);
