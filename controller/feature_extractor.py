@@ -142,9 +142,9 @@ class SlidingWindowBuffer:
         """Xóa toàn bộ buffers."""
         self._buffers.clear()
 
-    def evict_old(self, active_flow_ids: set):
-        """Xóa các flow không còn active."""
-        stale = [fid for fid in self._buffers if fid not in active_flow_ids]
+    def evict_old(self, active_flow_ids: set, prefix: str = ""):
+        """Xóa các flow không còn active của switch (dựa vào prefix)."""
+        stale = [fid for fid in self._buffers if fid.startswith(prefix) and fid not in active_flow_ids]
         for fid in stale:
             del self._buffers[fid]
 
@@ -249,8 +249,8 @@ class FeatureExtractor:
                     sequence = self._window.get_sequence(flow_id)
                     ready_flows.append((flow_id, sequence))
 
-        # Evict stale flows
-        self._window.evict_old(active_ids)
+        # Evict stale flows cho switch hiện tại (tránh xóa nhầm flow của switch khác)
+        self._window.evict_old(active_ids, prefix=f"{dpid}|")
 
         return ready_flows
 
