@@ -1,9 +1,10 @@
 import sys
-import requests
+import re
+import os
 
 def main():
     if len(sys.argv) < 2:
-        print("Sử dụng: python3 swap_model.py <lstm|transformer|autoencoder>")
+        print("Sử dụng: python swap_model.py <lstm|transformer|autoencoder>")
         sys.exit(1)
 
     model = sys.argv[1].lower()
@@ -11,19 +12,24 @@ def main():
         print("❌ Lỗi: Tên model phải là lstm, transformer hoặc autoencoder")
         sys.exit(1)
 
-    url = "http://localhost:8080/api/model"
-    print(f"[*] Đang gửi yêu cầu chuyển sang model '{model}'...")
-    
-    try:
-        resp = requests.put(url, json={"model": model})
-        if resp.status_code == 200:
-            print(f"✅ THÀNH CÔNG: Controller đã chuyển sang mô hình '{model}'!")
-        else:
-            print(f"❌ Lỗi từ Controller: {resp.text}")
-    except requests.exceptions.ConnectionError:
-        print("❌ Lỗi kết nối: Không tìm thấy Controller. Đảm bảo Ryu đang chạy.")
-    except Exception as e:
-        print(f"❌ Lỗi không xác định: {e}")
+    config_path = "config.py"
+    if not os.path.exists(config_path):
+        print(f"❌ Lỗi: Không tìm thấy file {config_path}")
+        sys.exit(1)
+
+    # Đọc nội dung file config.py
+    with open(config_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Thay thế chuỗi ACTIVE_MODEL
+    new_content = re.sub(r'^ACTIVE_MODEL\s*=\s*["\'].*?["\']', f'ACTIVE_MODEL = "{model}"', content, flags=re.MULTILINE)
+
+    # Ghi lại file config.py
+    with open(config_path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+
+    print(f"✅ Đã đổi cấu hình sang mô hình '{model.upper()}' thành công!")
+    print("👉 Lưu ý: Hãy khởi động lại Ryu Controller (Ctrl+C rồi chạy bash run_ryu.sh) để nạp mô hình mới.")
 
 if __name__ == "__main__":
     main()
